@@ -1,0 +1,37 @@
+// schema.prisma
+
+model Organization {
+    id         Int        @id @default(autoincrement())
+    name       String     @unique
+    users      User[]
+    assets     Asset[]
+    categories Category[]
+}
+
+model User {
+    id             Int          @id @default(autoincrement())
+    email          String       @unique
+    password       String
+    role           String       @default("MEMBER") // ADMIN or MEMBER
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+}
+
+model Asset {
+    id             Int          @id @default(autoincrement())
+    name           String
+    serialNumber   String       @unique
+    status         String // Active, Maintenance, Retired
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+    category       Category     @relation(fields: [categoryId], references: [id])
+    categoryId     Int
+}
+
+model Category {
+    id             Int          @id @default(autoincrement())
+    name           String
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+    assets         Asset[]
+}

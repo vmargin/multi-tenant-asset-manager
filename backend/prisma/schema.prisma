@@ -1,37 +1,46 @@
-// schema.prisma
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
 
+generator client {
+    provider = "prisma-client-js"
+}
+
+// ... rest of your models (Organization, User, Asset, Category)
 model Organization {
-    id         Int        @id @default(autoincrement())
+    id         String     @id @default(uuid()) // Changed to UUID
     name       String     @unique
+    slug       String     @unique // Added this line
     users      User[]
     assets     Asset[]
     categories Category[]
 }
 
 model User {
-    id             Int          @id @default(autoincrement())
+    id             String       @id @default(uuid()) // Changed to UUID
     email          String       @unique
     password       String
-    role           String       @default("MEMBER") // ADMIN or MEMBER
+    role           String       @default("MEMBER")
     organization   Organization @relation(fields: [organizationId], references: [id])
-    organizationId Int
+    organizationId String
 }
 
 model Asset {
-    id             Int          @id @default(autoincrement())
+    id             String       @id @default(uuid())
     name           String
     serialNumber   String       @unique
-    status         String // Active, Maintenance, Retired
+    status         String
     organization   Organization @relation(fields: [organizationId], references: [id])
-    organizationId Int
+    organizationId String
     category       Category     @relation(fields: [categoryId], references: [id])
-    categoryId     Int
+    categoryId     String
 }
 
 model Category {
-    id             Int          @id @default(autoincrement())
+    id             String       @id @default(uuid())
     name           String
     organization   Organization @relation(fields: [organizationId], references: [id])
-    organizationId Int
+    organizationId String
     assets         Asset[]
 }

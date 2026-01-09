@@ -36,12 +36,11 @@ VITE_API_URL=http://localhost:5000/api
 
 ## Production Environment Variables
 
-### Render (Backend)
+### Railway (Backend)
 - `DATABASE_URL` - Supabase connection string
 - `JWT_SECRET` - Strong random secret
 - `NODE_ENV` - `production`
-- `PORT` - `10000` (or leave empty)
-- `FRONTEND_URL` - Your Vercel URL (optional, for CORS)
+- `PORT` - Auto-assigned by Railway
 
 ### Vercel (Frontend)
-- `VITE_API_URL` - Your Render backend URL + `/api`
+- `VITE_API_URL` - Your Railway backend URL + `/api`

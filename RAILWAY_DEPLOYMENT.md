@@ -32,16 +32,18 @@ Complete guide for deploying Multi-Tenant Asset Manager to Railway (Backend) and
 4. Choose your repository: `multi-tenant-asset-manager`
 5. Railway will auto-detect it's a Node.js project
 
-### 2.2 Configure Service Settings
+### 2.2 Configure Service Settings ⚠️ IMPORTANT
 
-Railway should auto-detect your backend, but if not:
+**CRITICAL**: Railway must use the `backend` directory as root!
 
 1. Click on your service
 2. Go to **Settings** tab
-3. Set:
-   - **Root Directory**: `backend` (or leave empty if root)
-   - **Build Command**: `npm install && npx prisma generate`
-   - **Start Command**: `npm start`
+3. **Root Directory**: Set to `backend` (this is required!)
+4. **Builder**: Select **Nixpacks** (not Docker)
+5. **Build Command**: Leave empty (Nixpacks auto-detects Node.js)
+6. **Start Command**: `npm start`
+
+**Why?** If Root Directory is not set to `backend`, Railway will try to build from the root and may use Docker instead of Nixpacks, causing build errors.
 
 ### 2.3 Set Environment Variables
 
@@ -50,19 +52,24 @@ In Railway dashboard, go to **Variables** tab and add:
 #### Required Variables:
 
 1. **DATABASE_URL**
+
    ```
    postgresql://postgres:yourpassword@db.xxxxx.supabase.co:5432/postgres?sslmode=require
    ```
+
    - Get this from Supabase Dashboard → Settings → Database → Connection string (Direct connection)
 
 2. **JWT_SECRET**
+
    ```
    your-super-secret-jwt-key-generate-this
    ```
+
    - Generate with: `openssl rand -base64 32`
    - Or use: [randomkeygen.com](https://randomkeygen.com)
 
 3. **NODE_ENV**
+
    ```
    production
    ```
@@ -93,6 +100,7 @@ Railway can also host your database, but since you're using Supabase:
 After first deployment, run migrations:
 
 **Option A: Via Railway CLI**
+
 ```bash
 # Install Railway CLI
 npm i -g @railway/cli
@@ -109,6 +117,7 @@ railway run npx prisma migrate deploy
 ```
 
 **Option B: Via Railway Dashboard**
+
 1. Go to your service
 2. Click **"Deployments"** → **"View Logs"**
 3. Use **"Shell"** tab to run commands
@@ -171,16 +180,19 @@ In Vercel dashboard → **Settings** → **Environment Variables**:
 If you get CORS errors, update `backend/src/server.js`:
 
 ```javascript
-app.use(cors({
-  origin: [
-    'http://localhost:5173', // Local dev
-    'https://your-vercel-app.vercel.app' // Production
-  ],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // Local dev
+      "https://your-vercel-app.vercel.app", // Production
+    ],
+    credentials: true,
+  })
+);
 ```
 
 Or temporarily allow all (less secure):
+
 ```javascript
 app.use(cors());
 ```
@@ -210,31 +222,37 @@ Then redeploy to Railway.
 ### Backend Issues
 
 **Build fails:**
+
 - Check Railway build logs
 - Verify `backend/package.json` has correct scripts
 - Ensure Prisma is in dependencies
 
 **Database connection errors:**
+
 - Verify `DATABASE_URL` is correct (direct connection, not pooler)
 - Check Supabase project is active
 - Ensure `?sslmode=require` is in connection string
 
 **Port errors:**
+
 - Railway auto-assigns PORT
 - Use `process.env.PORT || 5000` in server.js (already done)
 
 **Prisma errors:**
+
 - Run `npx prisma generate` in build command
 - Ensure migrations are deployed
 
 ### Frontend Issues
 
 **API connection errors:**
+
 - Verify `VITE_API_URL` matches Railway URL
 - Check CORS settings in backend
 - Ensure Railway service is running
 
 **Build errors:**
+
 - Check Vercel build logs
 - Verify `vercel.json` configuration
 - Ensure all dependencies in `package.json`
@@ -242,11 +260,13 @@ Then redeploy to Railway.
 ### Railway Service Issues
 
 **Service not starting:**
+
 - Check Railway logs
 - Verify start command is correct
 - Check environment variables are set
 
 **Cold starts:**
+
 - Free tier services may have cold starts
 - First request after inactivity takes ~10-30 seconds
 - Upgrade to paid plan for faster starts
@@ -256,6 +276,7 @@ Then redeploy to Railway.
 ## Environment Variables Summary
 
 ### Railway (Backend)
+
 ```
 DATABASE_URL=postgresql://postgres:password@db.xxxxx.supabase.co:5432/postgres?sslmode=require
 JWT_SECRET=your-generated-secret-here
@@ -264,6 +285,7 @@ PORT=3000 (optional, Railway auto-assigns)
 ```
 
 ### Vercel (Frontend)
+
 ```
 VITE_API_URL=https://your-railway-app.up.railway.app/api
 ```
@@ -335,6 +357,7 @@ VITE_API_URL="https://your-railway-app.up.railway.app/api" npm run dev
 ## Cost Estimate
 
 **Free Tier:**
+
 - Railway: $5 free credit/month (enough for small projects)
 - Vercel: Free for personal projects
 - Supabase: Free tier (500MB database, 2GB bandwidth)

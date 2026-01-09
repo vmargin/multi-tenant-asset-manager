@@ -89,5 +89,11 @@ app.delete('/api/assets/:id', authenticate, deleteAsset);
  * 
  * The callback runs when the server successfully starts listening
  */
+// Railway and other platforms auto-assign PORT, fallback to 5000 for local dev
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server on http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`   Local: http://localhost:${PORT}`);
+  }
+});

@@ -176,7 +176,14 @@ const login = async (req, res) => {
      * - token: Client stores this and sends it in Authorization header
      * - user: Basic user info (we don't send password or sensitive data!)
      */
-    res.json({ token, user: { email: user.email, orgId: user.organizationId } });
+    res.json({ 
+      token, 
+      user: { 
+        email: user.email, 
+        orgId: user.organizationId,
+        orgName: user.organization.name 
+      } 
+    });
   } catch (error) {
     /**
      * ERROR HANDLING

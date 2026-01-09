@@ -1,9 +1,10 @@
 /**
  * ASSET CONTROLLER
  * 
- * This controller handles all asset-related operations:
+ * This controller handles all asset-related operations (CRUD):
  * - GET /api/assets - List all assets for the user's organization
  * - POST /api/assets - Create a new asset
+ * - PATCH /api/assets/:id - Update an existing asset
  * - DELETE /api/assets/:id - Delete an asset
  * 
  * IMPORTANT: All routes are protected by authentication middleware,
@@ -298,5 +299,175 @@ const deleteAsset = async (req, res) => {
   }
 };
 
+/**
+ * UPDATE ASSET
+ * 
+ * Handler for PATCH /api/assets/:id
+ * 
+ * CRITICAL SECURITY: Multi-tenant protection
+ * - Only updates assets belonging to the user's organization
+ * - Uses updateMany() with BOTH id AND organizationId
+ * - This prevents users from updating other organizations' assets
+ * 
+ * Why updateMany() instead of update()?
+ * - update() throws error if record doesn't exist
+ * - updateMany() returns count of updated records (0 if none)
+ * - We can check count to see if update succeeded
+ * 
+ * @param {Object} req - Contains req.params.id (from URL), req.body (update data), and req.user.orgId
+ * @param {Object} res - Response object
+ */
+const updateAsset = async (req, res) => {
+  /**
+   * EXTRACT DATA FROM REQUEST
+   * 
+   * - id: From URL parameters (req.params.id)
+   * - Update data: From request body (req.body)
+   * - orgId: From authenticated user (req.user.orgId)
+   */
+  const { id } = req.params;
+  const { name, serialNumber, status } = req.body;
+  const orgId = req.user.orgId;
+
+  /**
+   * INPUT VALIDATION
+   * 
+   * Ensure ID was provided in the URL
+   */
+  if (!id) {
+    return res.status(400).json({ error: "Asset ID is required" });
+  }
+
+  /**
+   * INPUT VALIDATION - LAYER 1: At least one field to update
+   * 
+   * User must provide at least one field to update.
+   * If all fields are missing, there's nothing to update.
+   */
+  if (!name && !serialNumber && !status) {
+    return res.status(400).json({ error: "At least one field (name, serialNumber, or status) is required" });
+  }
+
+  /**
+   * INPUT VALIDATION - LAYER 2: Non-empty strings (if provided)
+   * 
+   * If name or serialNumber are provided, they must not be empty.
+   * trim() removes whitespace to prevent "   " as valid input.
+   */
+  if (name && name.trim().length === 0) {
+    return res.status(400).json({ error: "Name cannot be empty" });
+  }
+
+  if (serialNumber && serialNumber.trim().length === 0) {
+    return res.status(400).json({ error: "Serial number cannot be empty" });
+  }
+
+  /**
+   * INPUT VALIDATION - LAYER 3: Status Enum (if provided)
+   * 
+   * If status is provided, it must be one of the valid values.
+   */
+  const validStatuses = ['active', 'maintenance', 'retired'];
+  if (status && !validStatuses.includes(status)) {
+    return res.status(400).json({ error: `Status must be one of: ${validStatuses.join(', ')}` });
+  }
+
+  try {
+    // Correction Policy: Allow serial number edits, but check for duplicates in same org
+    if (serialNumber) {
+      const existingAsset = await prisma.asset.findUnique({
+        where: { serialNumber }
+      });
+
+      // Reject if serial number exists in same org and it's a different asset
+      if (existingAsset && existingAsset.organizationId === orgId && existingAsset.id !== id) {
+        return res.status(409).json({ error: "Serial number already exists" });
+      }
+    }
+
+    /**
+     * BUILD UPDATE DATA OBJECT
+     * 
+     * Only include fields that were provided in the request.
+     * This allows partial updates (PATCH semantics).
+     * 
+     * Example: If only status is provided, only status gets updated.
+     */
+    const updateData = {};
+    if (name) updateData.name = name.trim();
+    if (serialNumber) updateData.serialNumber = serialNumber.trim();
+    if (status) updateData.status = status;
+
+    /**
+     * SECURE UPDATE OPERATION
+     * 
+     * updateMany() updates all records matching the where condition.
+     * 
+     * CRITICAL: We include organizationId in the where clause!
+     * This ensures:
+     * 1. Asset exists with that ID
+     * 2. Asset belongs to user's organization
+     * 
+     * If someone tries to update asset from another organization:
+     * - The where clause won't match (different orgId)
+     * - updated.count will be 0
+     * - We return 404 (not found) - don't reveal it exists but belongs to another org
+     * 
+     * This is a security best practice for multi-tenant applications!
+     */
+    const updated = await prisma.asset.updateMany({
+      where: {
+        id: id,
+        organizationId: orgId  // SECURITY: Only update assets from user's organization
+      },
+      data: updateData
+    });
+
+    /**
+     * CHECK IF UPDATE SUCCEEDED
+     * 
+     * updated.count tells us how many records were updated
+     * - 0 = No matching record (doesn't exist or wrong organization)
+     * - 1 = Successfully updated
+     * 
+     * We return 404 (Not Found) if count is 0
+     * This gives a generic error without revealing security details
+     */
+    if (updated.count === 0) {
+      return res.status(404).json({ error: "Asset not found or unauthorized" });
+    }
+
+    /**
+     * FETCH UPDATED ASSET
+     * 
+     * After successful update, fetch the updated asset to return to client.
+     * This ensures client gets the latest data including any database defaults.
+     */
+    const updatedAsset = await prisma.asset.findUnique({
+      where: { id },
+      include: { category: true }
+    });
+
+    // Success - return the updated asset
+    res.json(updatedAsset);
+  } catch (error) {
+    console.error("Update asset error:", error);
+
+    /**
+     * HANDLE PRISMA UNIQUE CONSTRAINT ERROR
+     * 
+     * Prisma error code P2002 = unique constraint violation
+     * This happens if serial number is duplicate (even after our check)
+     * Could happen in race condition (two requests at same time)
+     */
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: "Serial number already exists" });
+    }
+
+    // Generic error for any other database errors
+    res.status(500).json({ error: "Failed to update asset" });
+  }
+};
+
 // Export all controller functions so server.js can use them
-module.exports = { getAssets, createAsset, deleteAsset };
+module.exports = { getAssets, createAsset, deleteAsset, updateAsset };

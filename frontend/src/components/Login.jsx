@@ -130,6 +130,7 @@ const Login = ({ onLoginSuccess }) => {
        */
       localStorage.setItem('token', data.token);
       localStorage.setItem('orgId', data.user.orgId);
+      localStorage.setItem('orgName', data.user.orgName);
 
       /**
        * NOTIFY PARENT COMPONENT

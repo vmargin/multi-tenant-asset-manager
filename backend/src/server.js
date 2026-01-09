@@ -18,7 +18,7 @@ const cors = require('cors');
 
 // Import route handlers (controllers) - these contain the business logic
 const { login } = require('./controllers/authController');
-const { getAssets, createAsset, deleteAsset } = require('./controllers/assetController');
+const { getAssets, createAsset, deleteAsset, updateAsset } = require('./controllers/assetController');
 
 // Import authentication middleware - runs before protected routes
 const authenticate = require('./middleware/auth');
@@ -38,8 +38,11 @@ const app = express();
  * They can modify the request/response or end the request early.
  */
 
-// CORS middleware - allows requests from any origin (in production, restrict this!)
-app.use(cors());
+// CORS middleware - configure allowed origins
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*', // Allow all in dev, restrict in production
+  credentials: true
+}));
 
 // JSON parser middleware - automatically parses JSON request bodies
 // Without this, req.body would be undefined for JSON requests
@@ -68,6 +71,11 @@ app.get('/api/assets', authenticate, getAssets);
 
 // POST /api/assets - Create a new asset
 app.post('/api/assets', authenticate, createAsset);
+
+// PATCH /api/assets/:id - Update an asset by ID
+// PATCH is used for partial updates (update only provided fields)
+// The :id is a route parameter - accessible via req.params.id
+app.patch('/api/assets/:id', authenticate, updateAsset);
 
 // DELETE /api/assets/:id - Delete an asset by ID
 // The :id is a route parameter - accessible via req.params.id

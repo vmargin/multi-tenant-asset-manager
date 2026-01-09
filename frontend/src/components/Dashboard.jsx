@@ -6,7 +6,7 @@
  * - Statistics cards (total assets, active, maintenance)
  * - Table of all assets
  * - Add asset button
- * - Delete functionality for each asset
+ * - Edit and Delete functionality for each asset
  * 
  * This component demonstrates:
  * - Fetching data from API
@@ -14,6 +14,7 @@
  * - Conditional rendering
  * - Event handling
  * - React Hooks (useState, useEffect)
+ * - CRUD operations (Create, Read, Update, Delete)
  */
 
 // Import React Hooks
@@ -24,8 +25,9 @@ import { useEffect, useState } from 'react';
 // Import configured API client
 import api from '../api/axios';
 
-// Import child component (modal for adding assets)
+// Import child components (modals for adding and editing assets)
 import AddAssetModal from './AddAssetModal';
+import EditAssetModal from './EditAssetModal';
 
 /**
  * DASHBOARD COMPONENT FUNCTION
@@ -48,7 +50,9 @@ const Dashboard = () => {
    */
   const [assets, setAssets] = useState([]); // Start with empty array
   const [loading, setLoading] = useState(true); // Start with loading = true
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal starts closed
+  const [isModalOpen, setIsModalOpen] = useState(false); // Add modal starts closed
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Edit modal starts closed
+  const [selectedAsset, setSelectedAsset] = useState(null); // Asset to edit (null when not editing)
 
   /**
    * FETCH ASSETS FROM API
@@ -105,6 +109,22 @@ const Dashboard = () => {
       console.error("Fetch error:", err);
       setLoading(false);
     }
+  };
+
+  /**
+   * EDIT ASSET HANDLER
+   * 
+   * This function handles opening the edit modal when user clicks Edit button.
+   * 
+   * @param {Object} asset - The asset object to edit
+   * 
+   * Flow:
+   * 1. Set the selected asset (the one to edit)
+   * 2. Open the edit modal
+   */
+  const handleEdit = (asset) => {
+    setSelectedAsset(asset); // Store the asset to edit
+    setIsEditModalOpen(true); // Open the edit modal
   };
 
   /**
@@ -230,15 +250,10 @@ const Dashboard = () => {
         {/* Title and Organization Badge */}
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-bold text-gray-900">Assets</h1>
-          {/* Organization ID Badge */}
-          {/* 
-            Shows which organization the user belongs to.
-            localStorage.getItem('orgId') gets the org ID stored during login.
-            This is for multi-tenant identification.
-          */}
+          {/* Organization Name Badge */}
           <div className="flex gap-2 mt-1">
-            <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-mono">
-              Org: {localStorage.getItem('orgId')}
+            <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+              Org: {localStorage.getItem('orgName') || 'N/A'}
             </span>
           </div>
         </div>
@@ -348,20 +363,40 @@ const Dashboard = () => {
                   {/* font-mono = monospace font (good for codes/IDs) */}
                   <td className="px-6 py-4 text-sm text-gray-500 font-mono">{asset.serialNumber}</td>
                   
-                  {/* Delete Button */}
+                  {/* Actions Column - Edit and Delete Buttons */}
                   {/* 
-                    onClick={() => handleDelete(asset.id)}
-                    - Arrow function passes asset.id to handleDelete
-                    - Wrapped in arrow function so it doesn't execute immediately
-                    - Only runs when button is clicked
+                    This column contains action buttons for each asset row.
+                    We use flexbox to display buttons side by side with spacing.
                   */}
                   <td className="px-6 py-4 text-sm font-medium">
-                    <button
-                      onClick={() => handleDelete(asset.id)}
-                      className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition duration-200"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-2">
+                      {/* Edit Button */}
+                      {/* 
+                        onClick={() => handleEdit(asset)}
+                        - Arrow function passes the entire asset object to handleEdit
+                        - This opens the edit modal with the asset's current data pre-filled
+                      */}
+                      <button
+                        onClick={() => handleEdit(asset)}
+                        className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition duration-200"
+                      >
+                        Edit
+                      </button>
+                      
+                      {/* Delete Button */}
+                      {/* 
+                        onClick={() => handleDelete(asset.id)}
+                        - Arrow function passes asset.id to handleDelete
+                        - Wrapped in arrow function so it doesn't execute immediately
+                        - Only runs when button is clicked
+                      */}
+                      <button
+                        onClick={() => handleDelete(asset.id)}
+                        className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition duration-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -388,6 +423,31 @@ const Dashboard = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onRefresh={fetchAssets} 
+      />
+
+      {/* EDIT ASSET MODAL */}
+      {/* 
+        This is a child component that shows a modal dialog for editing assets.
+        
+        Props passed to EditAssetModal:
+        - isOpen: Controls whether modal is visible (true/false)
+        - onClose: Callback function to close the modal (also clears selectedAsset)
+        - onRefresh: Callback function to refresh assets list after updating
+        - asset: The asset object to edit (contains current data to pre-fill form)
+        
+        Component communication pattern:
+        - Parent (Dashboard) controls modal visibility and selected asset with state
+        - Child (EditAssetModal) notifies parent when to close/refresh
+        - When modal closes, we clear selectedAsset to reset state
+      */}
+      <EditAssetModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedAsset(null); // Clear selected asset when closing
+        }} 
+        onRefresh={fetchAssets}
+        asset={selectedAsset}
       />
     </div>
   );

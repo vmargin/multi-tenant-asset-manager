@@ -22,9 +22,9 @@ import axios from 'axios';
  * - We can have multiple instances for different APIs
  */
 const api = axios.create({
-  // Base URL for all requests - this gets prepended to every request path
-  // Example: api.get('/assets') becomes GET http://localhost:5000/api/assets
-  baseURL: 'http://localhost:5000/api',
+  // Base URL for all requests - uses environment variable in production
+  // Falls back to localhost for development
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 });
 
 /**

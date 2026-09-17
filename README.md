@@ -2,6 +2,8 @@
 
 A full-stack asset management system with multi-tenant architecture, built with React, Node.js, Express, Prisma, and PostgreSQL.
 
+**Live demo:** https://multi-tenant-asset-manager.vercel.app
+
 ## Features
 
 - 🔐 JWT-based authentication
@@ -91,6 +93,9 @@ VITE_API_URL=http://localhost:5000/api
 ### Test Credentials
 - **Acme Corp**: `admin@acme.com` / `password123`
 - **Globex Corp**: `hank@globex.com` / `password123`
+
+Use synthetic data only. This is an educational portfolio system, not production
+asset-management software.
 
 ## Deployment
 

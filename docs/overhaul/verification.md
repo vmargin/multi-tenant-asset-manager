@@ -8,6 +8,7 @@ Verification date: 7 October 2026. The supplied AssetHub image governs the visua
 | --- | --- |
 | PostgreSQL API suite | Eight tests passed, zero failed and zero skipped with `RUN_DB_TESTS=1` |
 | Password regression | The tenant/permission test passed again after adding rejection of passwords exceeding bcrypt's 72-byte limit |
+| Demo release regression | Demo isolation/expiry and tenant/permission tests passed after batching demo writes; assertions cover category/location links, assignees, open checkouts and location-scoped audit snapshots |
 | Frontend lint | `npm run lint` passed |
 | Frontend production bundle | Vite built successfully: 1,919 modules, approximately 314 kB JavaScript before gzip |
 | Prisma | Schema validation, client generation and migration deployment passed with the dependency override |
@@ -46,7 +47,7 @@ Automated accessibility checks do not establish full conformance. Manual checks 
 
 ## Production release
 
-Production deployment and public-domain browser evidence will be recorded here after the source is pushed and the Vercel release reaches READY.
+The initial overhaul deployment reached READY and returned HTTP 200 for the public HTML and health endpoint. Its first live demo request exposed a Prisma P2028 transaction timeout: setup inserted each synthetic record separately. Demo provisioning now preassigns IDs and inserts each table in batches inside the same all-or-nothing transaction. The transaction deadline and isolation safeguards remain in place. Final public-domain browser evidence will be recorded after the corrected release reaches READY.
 
 ## Operational boundaries
 

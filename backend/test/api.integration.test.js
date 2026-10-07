@@ -680,6 +680,40 @@ test(
       assert(snapshot.data.audits.length > 0);
       assert(snapshot.data.activity.length > 0);
       assert(snapshot.data.checkouts.some((item) => item.returnedAt === null));
+      for (const asset of snapshot.data.assets) {
+        assert(
+          snapshot.data.categories.some((item) => item.id === asset.categoryId),
+        );
+        assert(
+          snapshot.data.locations.some((item) => item.id === asset.locationId),
+        );
+        const openCheckout = snapshot.data.checkouts.find(
+          (item) => item.assetId === asset.id && item.returnedAt === null,
+        );
+        if (asset.status === "ASSIGNED") {
+          assert(openCheckout);
+          assert.equal(openCheckout.personId, asset.assignedToId);
+          assert(
+            snapshot.data.people.some((item) => item.id === asset.assignedToId),
+          );
+        } else {
+          assert.equal(openCheckout, undefined);
+        }
+      }
+      for (const audit of snapshot.data.audits) {
+        assert(audit.assetIds.length > 0);
+        for (const assetId of audit.assetIds) {
+          const asset = snapshot.data.assets.find(
+            (item) => item.id === assetId,
+          );
+          assert(asset);
+          assert.equal(asset.locationId, audit.locationId);
+          assert.notEqual(asset.status, "RETIRED");
+        }
+        assert(
+          audit.verifiedAssetIds.every((id) => audit.assetIds.includes(id)),
+        );
+      }
     }
 
     const actor = await prisma.user.findUnique({

@@ -191,89 +191,76 @@ async function createDemoWorkspace(tx, options) {
     fakeUsers,
     currency,
   } = options;
-  const categories = new Map();
-  for (const name of [
+  // Preassign IDs so each table can be inserted in one database round trip.
+  // The caller's transaction keeps both demo workspaces all-or-nothing.
+  const categoryRows = [
     "Laptops",
     "Displays",
     "Mobile",
     "Peripherals",
     "Office",
     "Network",
-  ]) {
-    categories.set(
+  ].map((name) => ({
+    id: crypto.randomUUID(),
+    organizationId: organization.id,
+    name,
+  }));
+  const categories = new Map(
+    categoryRows.map((category) => [category.name, category]),
+  );
+  const headquartersId = crypto.randomUUID();
+  const locations = [
+    {
+      id: headquartersId,
+      organizationId: organization.id,
+      name: "Headquarters",
+      address: "100 Market Street",
+    },
+    ...["Engineering", "Operations"].map((name) => ({
+      id: crypto.randomUUID(),
+      organizationId: organization.id,
       name,
-      await tx.category.create({
-        data: { organizationId: organization.id, name },
-      }),
-    );
-  }
-  const locations = [];
-  locations.push(
-    await tx.location.create({
-      data: {
-        organizationId: organization.id,
-        name: "Headquarters",
-        address: "100 Market Street",
-      },
-    }),
-  );
-  locations.push(
-    await tx.location.create({
-      data: {
-        organizationId: organization.id,
-        name: "Engineering",
-        parentId: locations[0].id,
-      },
-    }),
-  );
-  locations.push(
-    await tx.location.create({
-      data: {
-        organizationId: organization.id,
-        name: "Operations",
-        parentId: locations[0].id,
-      },
-    }),
-  );
+      parentId: headquartersId,
+    })),
+  ];
+  const users = fakeUsers.map((person) => ({
+    id: crypto.randomUUID(),
+    name: person.name,
+    email: person.email,
+    password: person.password,
+    demoExpiresAt: expiresAt,
+  }));
 
   const members = [
-    await tx.membership.create({
-      data: {
-        organizationId: organization.id,
-        userId: actor.id,
-        email: actor.email,
-        name: actor.name,
-        role: "OWNER",
-        status: "ACTIVE",
-        department: "Operations",
-      },
-    }),
+    {
+      id: crypto.randomUUID(),
+      organizationId: organization.id,
+      userId: actor.id,
+      email: actor.email,
+      name: actor.name,
+      role: "OWNER",
+      status: "ACTIVE",
+      department: "Operations",
+    },
   ];
-  for (const person of fakeUsers) {
-    const fake = await tx.user.create({
-      data: {
-        name: person.name,
-        email: person.email,
-        password: person.password,
-        demoExpiresAt: expiresAt,
-      },
+  for (const [index, person] of fakeUsers.entries()) {
+    const fake = users[index];
+    members.push({
+      id: crypto.randomUUID(),
+      organizationId: organization.id,
+      userId: fake.id,
+      email: fake.email,
+      name: fake.name,
+      role: "MEMBER",
+      status: "ACTIVE",
+      department: person.department,
     });
-    members.push(
-      await tx.membership.create({
-        data: {
-          organizationId: organization.id,
-          userId: fake.id,
-          email: fake.email,
-          name: fake.name,
-          role: "MEMBER",
-          status: "ACTIVE",
-          department: person.department,
-        },
-      }),
-    );
   }
 
   const createdAssets = [];
+  const checkouts = [];
+  const requests = [];
+  const activity = [];
   const startDate = new Date(Date.now() - 370 * 24 * 60 * 60 * 1000);
   const devices = sampleAssets(organizationName);
   for (const device of devices) {
@@ -285,60 +272,55 @@ async function createDemoWorkspace(tx, options) {
     const purchased = new Date(
       startDate.getTime() + device.index * 6 * 24 * 60 * 60 * 1000,
     );
-    const asset = await tx.asset.create({
-      data: {
-        organizationId: organization.id,
-        name: device.name,
-        assetTag: `AS-${String(device.index + 1).padStart(4, "0")}`,
-        serialNumber,
-        model: device.model,
-        status: assigned
-          ? "ASSIGNED"
-          : maintenance
-            ? "MAINTENANCE"
-            : retired
-              ? "RETIRED"
-              : "AVAILABLE",
-        categoryId: categories.get(device.categoryName).id,
-        locationId: locations[device.index % locations.length].id,
-        assignedToId: assignedTo?.id || null,
-        purchaseDate: purchased,
-        warrantyDate: new Date(purchased.getTime() + 365 * 24 * 60 * 60 * 1000),
-        purchaseCost: device.cost * 56,
-        notes: `Synthetic demo inventory for ${organizationName}.`,
-        createdAt: purchased,
-      },
-    });
+    const asset = {
+      id: crypto.randomUUID(),
+      organizationId: organization.id,
+      name: device.name,
+      assetTag: `AS-${String(device.index + 1).padStart(4, "0")}`,
+      serialNumber,
+      model: device.model,
+      status: assigned
+        ? "ASSIGNED"
+        : maintenance
+          ? "MAINTENANCE"
+          : retired
+            ? "RETIRED"
+            : "AVAILABLE",
+      categoryId: categories.get(device.categoryName).id,
+      locationId: locations[device.index % locations.length].id,
+      assignedToId: assignedTo?.id || null,
+      purchaseDate: purchased,
+      warrantyDate: new Date(purchased.getTime() + 365 * 24 * 60 * 60 * 1000),
+      purchaseCost: device.cost * 56,
+      notes: `Synthetic demo inventory for ${organizationName}.`,
+      createdAt: purchased,
+    };
     createdAssets.push(asset);
     if (assigned && assignedTo) {
-      await tx.checkout.create({
-        data: {
-          organizationId: organization.id,
-          assetId: asset.id,
-          personId: assignedTo.id,
-          checkoutDate: new Date(
-            Date.now() - (25 - device.index) * 24 * 60 * 60 * 1000,
-          ),
-          expectedReturn: new Date(
-            Date.now() + (device.index - 12) * 7 * 24 * 60 * 60 * 1000,
-          ),
-          notes: "Issued during the synthetic workspace setup.",
-        },
+      checkouts.push({
+        organizationId: organization.id,
+        assetId: asset.id,
+        personId: assignedTo.id,
+        checkoutDate: new Date(
+          Date.now() - (25 - device.index) * 24 * 60 * 60 * 1000,
+        ),
+        expectedReturn: new Date(
+          Date.now() + (device.index - 12) * 7 * 24 * 60 * 60 * 1000,
+        ),
+        notes: "Issued during the synthetic workspace setup.",
       });
     }
     if (maintenance) {
-      await tx.maintenanceRequest.create({
-        data: {
-          organizationId: organization.id,
-          assetId: asset.id,
-          title: "Intermittent display connection",
-          description:
-            "USB-C display output disconnects under load. Adapter inspection is in progress.",
-          priority: "HIGH",
-          status: "IN_PROGRESS",
-          requestedById: members[2].id,
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        },
+      requests.push({
+        organizationId: organization.id,
+        assetId: asset.id,
+        title: "Intermittent display connection",
+        description:
+          "USB-C display output disconnects under load. Adapter inspection is in progress.",
+        priority: "HIGH",
+        status: "IN_PROGRESS",
+        requestedById: members[2].id,
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       });
     }
     const eventAt = assigned
@@ -348,28 +330,34 @@ async function createDemoWorkspace(tx, options) {
         : retired
           ? new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
           : purchased;
-    await recordActivity(
-      tx,
-      organization.id,
-      assigned
+    activity.push({
+      organizationId: organization.id,
+      action: assigned
         ? "asset.checked_out"
         : retired
           ? "asset.retired"
           : maintenance
             ? "asset.maintenance"
             : "asset.added",
-      assigned
+      title: assigned
         ? `${asset.name} checked out`
         : retired
           ? `${asset.name} retired`
           : maintenance
             ? `${asset.name} reported for repair`
             : `${asset.name} added`,
-      `Synthetic inventory activity in ${organizationName}.`,
-      asset.id,
-      eventAt,
-    );
+      description: `Synthetic inventory activity in ${organizationName}.`,
+      assetId: asset.id,
+      createdAt: eventAt,
+    });
   }
+  await tx.category.createMany({ data: categoryRows });
+  await tx.location.createMany({ data: locations });
+  await tx.user.createMany({ data: users });
+  await tx.membership.createMany({ data: members });
+  await tx.asset.createMany({ data: createdAssets });
+  await tx.checkout.createMany({ data: checkouts });
+  await tx.maintenanceRequest.createMany({ data: requests });
   await tx.audit.create({
     data: {
       organizationId: organization.id,
@@ -394,16 +382,16 @@ async function createDemoWorkspace(tx, options) {
     },
   });
   for (let i = 0; i < 8; i += 1) {
-    await recordActivity(
-      tx,
-      organization.id,
-      "workspace.activity",
-      "Inventory review completed",
-      `A routine review was recorded for ${organizationName}.`,
-      null,
-      new Date(Date.now() - (10 + i * 3) * 24 * 60 * 60 * 1000),
-    );
+    activity.push({
+      organizationId: organization.id,
+      action: "workspace.activity",
+      title: "Inventory review completed",
+      description: `A routine review was recorded for ${organizationName}.`,
+      assetId: null,
+      createdAt: new Date(Date.now() - (10 + i * 3) * 24 * 60 * 60 * 1000),
+    });
   }
+  await tx.activity.createMany({ data: activity });
   return {
     organization: { ...organization, currency },
     assetCount: createdAssets.length,

@@ -410,7 +410,7 @@ async function checkoutAsset(req, res) {
     "expectedReturn must be after checkoutDate",
   );
   const result = await prisma.$transaction(async (tx) => {
-    await owned(
+    const person = await owned(
       tx.membership,
       { id: personId, organizationId: req.organizationId, status: "ACTIVE" },
       "Person",
@@ -449,7 +449,7 @@ async function checkoutAsset(req, res) {
       req.organizationId,
       "asset.checked_out",
       `${current.name} checked out`,
-      `Asset assigned to ${personId}.`,
+      `Asset assigned to ${person.name}.`,
       current.id,
       checkoutDate,
     );

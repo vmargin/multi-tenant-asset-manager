@@ -1,46 +1,225 @@
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
-// ... rest of your models (Organization, User, Asset, Category)
 model Organization {
-    id         String     @id @default(uuid()) // Changed to UUID
-    name       String     @unique
-    slug       String     @unique // Added this line
-    users      User[]
-    assets     Asset[]
-    categories Category[]
+  id          String               @id @default(uuid())
+  name        String
+  slug        String               @unique
+  description String?
+  currency    String               @default("PHP")
+  isDemo      Boolean              @default(false)
+  expiresAt   DateTime?
+  users       User[]
+  memberships Membership[]
+  assets      Asset[]
+  categories  Category[]
+  locations   Location[]
+  checkouts   Checkout[]
+  requests    MaintenanceRequest[]
+  audits      Audit[]
+  activity    Activity[]
+  invitations Invitation[]
 }
 
 model User {
-    id             String       @id @default(uuid()) // Changed to UUID
-    email          String       @unique
-    password       String
-    role           String       @default("MEMBER")
-    organization   Organization @relation(fields: [organizationId], references: [id])
-    organizationId String
+  id             String        @id @default(uuid())
+  name           String        @default("")
+  email          String        @unique
+  password       String
+  // Retained for compatibility with the original rows and foreign key.
+  organizationId String?
+  role           String        @default("MEMBER")
+  demoExpiresAt  DateTime?
+  isDemoActor    Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull, map: "User_organizationId_fkey")
+  memberships    Membership[]
+  invitedBy      Invitation[]  @relation("InvitedBy")
+
+  @@index([organizationId])
 }
 
-model Asset {
-    id             String       @id @default(uuid())
-    name           String
-    serialNumber   String       @unique
-    status         String
-    organization   Organization @relation(fields: [organizationId], references: [id])
-    organizationId String
-    category       Category     @relation(fields: [categoryId], references: [id])
-    categoryId     String
+model Membership {
+  id             String               @id @default(uuid())
+  organizationId String
+  userId         String?
+  email          String
+  name           String
+  role           String               @default("MEMBER")
+  status         String               @default("ACTIVE")
+  department     String?
+  createdAt      DateTime             @default(now())
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "Membership_organizationId_fkey")
+  user           User?                @relation(fields: [userId], references: [id], onDelete: SetNull, map: "Membership_userId_fkey")
+  assignedAssets Asset[]              @relation("AssetAssignee")
+  checkouts      Checkout[]
+  requests       MaintenanceRequest[]
+  invitations    Invitation[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, email])
+  @@index([userId, status])
+  @@index([organizationId, role, status])
 }
 
 model Category {
-    id             String       @id @default(uuid())
-    name           String
-    organization   Organization @relation(fields: [organizationId], references: [id])
-    organizationId String
-    assets         Asset[]
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "Category_organizationId_fkey")
+  assets         Asset[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, name])
+}
+
+model Location {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  parentId       String?
+  address        String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "Location_organizationId_fkey")
+  parent         Location?    @relation("LocationTree", fields: [organizationId, parentId], references: [organizationId, id], onDelete: Restrict, map: "Location_parent_tenant_fkey")
+  children       Location[]   @relation("LocationTree")
+  assets         Asset[]
+  audits         Audit[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, name])
+  @@index([organizationId, parentId])
+}
+
+model Asset {
+  id             String               @id @default(uuid())
+  organizationId String
+  name           String
+  assetTag       String?
+  serialNumber   String
+  status         String               @default("AVAILABLE")
+  categoryId     String?
+  locationId     String?
+  assignedToId   String?
+  model          String?
+  purchaseDate   DateTime?
+  warrantyDate   DateTime?
+  purchaseCost   Decimal?             @db.Decimal(12, 2)
+  notes          String?
+  imageKey       String?
+  createdAt      DateTime             @default(now())
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "Asset_organizationId_fkey")
+  category       Category?            @relation(fields: [organizationId, categoryId], references: [organizationId, id], onDelete: Restrict, map: "Asset_category_tenant_fkey")
+  location       Location?            @relation(fields: [organizationId, locationId], references: [organizationId, id], onDelete: Restrict, map: "Asset_location_tenant_fkey")
+  assignedTo     Membership?          @relation("AssetAssignee", fields: [organizationId, assignedToId], references: [organizationId, id], onDelete: Restrict, map: "Asset_assignee_tenant_fkey")
+  checkouts      Checkout[]
+  requests       MaintenanceRequest[]
+  activity       Activity[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, assetTag])
+  @@unique([organizationId, serialNumber])
+  @@index([organizationId, status])
+  @@index([organizationId, categoryId])
+  @@index([organizationId, locationId])
+  @@index([organizationId, assignedToId])
+}
+
+model Checkout {
+  id             String       @id @default(uuid())
+  organizationId String
+  assetId        String
+  personId       String
+  checkoutDate   DateTime     @default(now())
+  expectedReturn DateTime?
+  returnedAt     DateTime?
+  notes          String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "Checkout_organizationId_fkey")
+  asset          Asset        @relation(fields: [organizationId, assetId], references: [organizationId, id], onDelete: Restrict, map: "Checkout_asset_tenant_fkey")
+  person         Membership   @relation(fields: [organizationId, personId], references: [organizationId, id], onDelete: Restrict, map: "Checkout_person_tenant_fkey")
+
+  @@unique([organizationId, id])
+  @@index([organizationId, assetId, returnedAt])
+  @@index([organizationId, personId, checkoutDate])
+}
+
+model MaintenanceRequest {
+  id             String       @id @default(uuid())
+  organizationId String
+  assetId        String
+  title          String
+  description    String?
+  priority       String       @default("MEDIUM")
+  status         String       @default("OPEN")
+  requestedById  String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "MaintenanceRequest_organizationId_fkey")
+  asset          Asset        @relation(fields: [organizationId, assetId], references: [organizationId, id], onDelete: Restrict, map: "MaintenanceRequest_asset_tenant_fkey")
+  requestedBy    Membership   @relation(fields: [organizationId, requestedById], references: [organizationId, id], onDelete: Restrict, map: "MaintenanceRequest_requester_tenant_fkey")
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, assetId])
+}
+
+model Audit {
+  id               String       @id @default(uuid())
+  organizationId   String
+  name             String
+  locationId       String?
+  status           String       @default("IN_PROGRESS")
+  assetIds         String[]     @default([])
+  verifiedAssetIds String[]     @default([])
+  version          Int          @default(0)
+  createdAt        DateTime     @default(now())
+  completedAt      DateTime?
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "Audit_organizationId_fkey")
+  location         Location?    @relation(fields: [organizationId, locationId], references: [organizationId, id], onDelete: Restrict, map: "Audit_location_tenant_fkey")
+
+  @@unique([organizationId, id])
+  @@index([organizationId, locationId])
+  @@index([organizationId, status, createdAt])
+}
+
+model Activity {
+  id             String       @id @default(uuid())
+  organizationId String
+  action         String
+  title          String
+  description    String?
+  assetId        String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "Activity_organizationId_fkey")
+  asset          Asset?       @relation(fields: [organizationId, assetId], references: [organizationId, id], onDelete: Restrict, map: "Activity_asset_tenant_fkey")
+
+  @@unique([organizationId, id])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, assetId])
+}
+
+model Invitation {
+  id             String       @id @default(uuid())
+  organizationId String
+  membershipId   String
+  email          String
+  tokenHash      String       @unique
+  invitedById    String
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "Invitation_organizationId_fkey")
+  membership     Membership   @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade, map: "Invitation_membership_tenant_fkey")
+  invitedBy      User         @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Restrict, map: "Invitation_invitedById_fkey")
+
+  @@index([organizationId, email, acceptedAt])
+  @@index([organizationId, membershipId])
+  @@index([invitedById])
+  @@index([expiresAt])
 }

@@ -1,0 +1,61 @@
+version: "1.0.0"
+project:
+  name: "asset-hub"
+  description: "Reference-driven multi-tenant asset management application"
+  language: "multi"
+  framework: "react"
+runtimes:
+  claude: false
+  cursor: false
+  windsurf: false
+  copilot: false
+  cline: false
+  trae: false
+  zed: false
+  codex: true
+  gemini: false
+  hermes: false
+  kimi: false
+  kiro: false
+  openclaude: false
+  opencode: false
+  pi: false
+  qwen: false
+  adal: false
+  codebuddy: false
+fellowship:
+  aragorn:
+    enabled: true
+    role: "Principal System Architect"
+  frodo:
+    enabled: true
+    role: "Core Task Executor"
+  boromir:
+    enabled: true
+    role: "Security Auditor"
+  merry:
+    enabled: true
+    role: "QA Specialist"
+departments:
+  architecture: true
+  backend: true
+  database: true
+  frontend: true
+  quality: true
+  security: true
+  workflow: true
+  ai-engineering: false
+  devops: true
+caveman:
+  default_mode: "off"
+  enforce_on_commits: false
+security:
+  agent_guard: true
+  block_destructive_commands: true
+  protect_credentials: true
+  enforce_docker_sandbox: false
+settings:
+  backup_existing: true
+  dry_run: false
+  anti_vibe_coding_strict_mode: true
+  circuit_breaker_max_steps: 30

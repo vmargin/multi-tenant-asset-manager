@@ -1,166 +1,80 @@
-# Multi-Tenant Asset Manager
+# AssetHub
 
-A full-stack asset management system with multi-tenant architecture, built with React, Node.js, Express, Prisma, and PostgreSQL.
+[Live application](https://multi-tenant-asset-manager.vercel.app/)
 
-**Live demo:** https://multi-tenant-asset-manager.vercel.app
+A multi-tenant equipment workspace built around an ivory, forest-green and editorial-serif interface. The light and dark themes share the same readable controls, compact tables and focused lifecycle drawers.
 
-## Features
+![AssetHub light dashboard](docs/overhaul/screenshots/dashboard-light.png)
 
-- 🔐 JWT-based authentication
-- 🏢 Multi-tenant data isolation
-- 📦 CRUD operations for assets
-- 🎨 Modern React UI with Tailwind CSS
-- 🔒 Secure password hashing (bcrypt)
-- 🚀 Deployed on Railway (backend) and Vercel (frontend)
+## What it does
 
-## Tech Stack
+- Sign in, create an organization and switch between authorized workspaces.
+- Track equipment, categories, location hierarchies, custodians, purchase values and warranties.
+- Add/edit assets, check out and return equipment, transfer locations and retire assets with their history intact.
+- Import up to 250 assets atomically from CSV, export inventory and generate printable QR labels.
+- Invite teammates through copyable, one-use links and manage OWNER, MANAGER and MEMBER permissions.
+- Report maintenance issues, start repairs and resolve them against the saved asset lifecycle.
+- Run location audits against fixed inventory snapshots, with version checks that reject stale saves.
+- View current reports, activity notifications, global search and organization settings.
+- Persist Light, Dark or System appearance and use the app at 320px and desktop widths.
 
-**Frontend:**
-- React 19
-- Vite
-- Tailwind CSS
-- Axios
+The public demo creates two private, synthetic workspaces for each session. It never signs visitors into an existing tenant. Demo access expires after 24 hours. All demo names, inventory and activity are invented.
 
-**Backend:**
-- Node.js
-- Express
-- Prisma ORM
-- PostgreSQL (Supabase)
-- JWT authentication
-- bcryptjs
+## Architecture and safeguards
 
-## Quick Start
+React 19 and Vite serve the frontend. Express 5, Prisma 6 and PostgreSQL serve the same-origin `/api`. Vercel hosts both through `api/index.js`; no separate Railway deployment is required.
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL database (or Supabase)
-- npm or yarn
+The server verifies ACTIVE organization membership on every workspace request. Tenant-specific composite foreign keys protect related records. Asset transitions and activity commit together, and a partial unique index permits one open checkout per asset. Assets retire instead of being deleted. The last active owner cannot be demoted or suspended. API errors do not reveal secrets or query arguments.
 
-### Local Development
+Prisma uses one pool of at most two connections per server instance. Configure a suitable PostgreSQL pooler for production scale. The compatible `deepmerge-ts` override removes the Prisma CLI dependency advisory; validation, client generation and deployment were exercised with it.
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd multi-tenant-asset-manager
-   ```
+## Run locally
 
-2. **Backend Setup**
-   ```bash
-   cd backend
-   npm install
-   # Create .env file (see Environment Variables below)
-   npx prisma generate
-   npx prisma migrate dev
-   npx prisma db seed
-   npm run dev
-   ```
+Use Node.js 24 and a PostgreSQL database. Work from the repository root:
 
-3. **Frontend Setup**
-   ```bash
-   cd frontend
-   npm install
-   # Create .env file (see Environment Variables below)
-   npm run dev
-   ```
-
-4. **Access the app**
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:5000
-
-## Environment Variables
-
-### Backend (`backend/.env`)
-```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/asset_manager
-JWT_SECRET=your-super-secret-jwt-key
-PORT=5000
-NODE_ENV=development
+```powershell
+npm ci --prefix backend
+npm ci --prefix frontend
+Copy-Item backend/.env.example backend/.env
 ```
 
-### Frontend (`frontend/.env`)
-```env
-VITE_API_URL=http://localhost:5000/api
+Set `DATABASE_URL` and a private, random `JWT_SECRET` in `backend/.env`. Set `APP_URL=http://localhost:5173` for local invitation and QR links. Then, for a new empty development database:
+
+```powershell
+cd backend
+npx prisma migrate deploy
+npm run dev
 ```
 
-## Database Setup
+In another terminal, run `npm run dev --prefix frontend` from the repository root. Open [localhost:5173](http://localhost:5173/). Vite proxies `/api` to port 5000. Use Create an organization for an empty workspace or Explore the demo for isolated examples.
 
-### Using Supabase
+Existing databases require a reviewed baseline; do not run the historical initialization migrations against tables that already exist. This overhaul baselined the two historical migrations, applied two additive migrations and verified fingerprints of all original records and credentials. See [deployment and rollback](docs/overhaul/deployment.md).
 
-1. Create a Supabase project
-2. Run `SUPABASE_SETUP.sql` in Supabase SQL Editor (creates tables)
-3. Run `SUPABASE_SEED.sql` in Supabase SQL Editor (creates test data)
+The optional development seed is additive and requires `ALLOW_DEVELOPMENT_SEED=1` plus `SEED_PASSWORD`. It is disabled in production. The old destructive SQL seed and obsolete Railway instructions have been removed.
 
-### Test Credentials
-- **Acme Corp**: `admin@acme.com` / `password123`
-- **Globex Corp**: `hank@globex.com` / `password123`
+## Verify
 
-Use synthetic data only. This is an educational portfolio system, not production
-asset-management software.
-
-## Deployment
-
-### Backend (Railway)
-
-1. Connect GitHub repo to Railway
-2. Set **Root Directory** to `backend`
-3. Set **Start Command** to `npm start`
-4. Add environment variables:
-   - `DATABASE_URL` (Supabase connection string)
-   - `JWT_SECRET`
-   - `NODE_ENV=production`
-
-See `RAILWAY_DEPLOYMENT.md` for detailed steps.
-
-### Frontend (Vercel)
-
-1. Connect GitHub repo to Vercel
-2. Set **Root Directory** to `frontend`
-3. Add environment variable:
-   - `VITE_API_URL` (your Railway backend URL + `/api`)
-
-## Project Structure
-
-```
-multi-tenant-asset-manager/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/    # Route handlers
-│   │   ├── middleware/      # Auth middleware
-│   │   ├── db/             # Prisma client
-│   │   └── server.js       # Express server
-│   └── prisma/
-│       ├── schema.prisma   # Database schema
-│       └── seed.js         # Seed script
-├── frontend/
-│   └── src/
-│       ├── components/     # React components
-│       ├── api/           # Axios configuration
-│       └── App.jsx        # Main app component
-└── SUPABASE_SETUP.sql     # Database schema SQL
-└── SUPABASE_SEED.sql      # Seed data SQL
+```powershell
+npm run lint --prefix frontend
+npm run build --prefix frontend
+npm run build --prefix backend
+$env:RUN_DB_TESTS='1'
+npm test --prefix backend
+npm audit --prefix frontend
+npm audit --prefix backend
 ```
 
-## API Endpoints
+The database tests use exact, synthetic fixture IDs and clean those fixtures up. Use a dedicated development database for routine testing. Without `RUN_DB_TESTS=1`, database tests are explicitly skipped.
 
-- `POST /api/auth/login` - User login
-- `GET /api/assets` - Get all assets (protected)
-- `POST /api/assets` - Create asset (protected)
-- `PATCH /api/assets/:id` - Update asset (protected)
-- `DELETE /api/assets/:id` - Delete asset (protected)
+[Verification evidence](docs/overhaul/verification.md) records lifecycle, tenant, concurrency, browser, accessibility and deployment checks. The browser accessibility dependency is development-only and is not included in the application bundle.
 
-## Security Features
+## Research and design
 
-- Password hashing with bcrypt
-- JWT token authentication
-- Multi-tenant data isolation
-- Input validation
-- CORS configuration
+- [Researched features and workflows](docs/overhaul/research.md), based on official Snipe-IT, Sortly, EZO and Smartsheet sources.
+- [Visual specification and Sauron design-engineering gates](docs/overhaul/design.md).
+- [Architecture and API contract](docs/overhaul/architecture.md).
+- [Dark theme screenshot](docs/overhaul/screenshots/dashboard-dark.png).
 
-## Documentation
+Sauron supplied the project adapter and workflow/design guidance. The actual CLI was used for initialization and skill registration. Generated runtime adapters and Fellowship persona names are not evidence that those runtimes ran. Implementation workers and the parent performed the documented checks.
 
-- `RAILWAY_DEPLOYMENT.md` - Complete Railway deployment guide
-- `ENV_SETUP.md` - Environment variables reference
-
-## License
-
-ISC
+This is an educational portfolio application. Email delivery, billing, SSO/SCIM, procurement automation, hardware discovery and external integrations are outside its scope. Invitations provide shareable links; no email is sent. Reports use current saved records, without invented historical estimates.

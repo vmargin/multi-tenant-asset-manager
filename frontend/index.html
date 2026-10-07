@@ -3,10 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Multi-Tenant Asset Manager</title>
+    <meta name="theme-color" content="#f4f3ee" />
+    <meta
+      name="description"
+      content="AssetHub. Everything in its right place. A multi-tenant workspace for your equipment, people and places."
+    />
+    <link rel="icon" type="image/svg+xml" href="/assethub.svg" />
+    <script>
+      try {
+        const preference = localStorage.getItem("assethub.theme") || "system";
+        const dark =
+          preference === "dark" ||
+          (preference === "system" &&
+            matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      } catch {
+        document.documentElement.dataset.theme = "light";
+      }
+    </script>
+    <title>AssetHub · Everything in its right place</title>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./src/main.jsx"></script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

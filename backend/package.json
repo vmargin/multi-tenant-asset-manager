@@ -1,19 +1,17 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "build": "prisma generate",
+    "dev": "node --watch src/server.js",
+    "build": "prisma validate && prisma generate",
     "postinstall": "prisma generate"
   },
-  
   "prisma": {
-  "seed": "node prisma/seed.js"
-},
-  
+    "seed": "node prisma/seed.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -25,13 +23,10 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.16.3",
     "prisma": "^6.19.1",
-    "qrcode": "^1.5.4",
-    "uuid": "^13.0.0"
+    "qrcode": "^1.5.4"
   },
-  "devDependencies": {
-    "@types/node": "^25.0.3",
-    "nodemon": "^3.1.11"
+  "overrides": {
+    "deepmerge-ts": "8.0.0"
   }
 }

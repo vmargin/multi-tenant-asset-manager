@@ -1,163 +1,122 @@
-/**
- * DATABASE SEED SCRIPT
- * 
- * This script populates the database with initial test data.
- * It's run with: npx prisma db seed
- * 
- * Purpose:
- * - Creates sample organizations (tenants)
- * - Creates sample users with hashed passwords
- * - Creates sample categories
- * - Useful for development and testing
- * 
- * Multi-tenant setup:
- * - Creates 2 organizations (Acme Corp and Globex Corp)
- * - Each has its own users and categories
- * - Demonstrates data isolation between tenants
- */
-
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
-/**
- * MAIN SEED FUNCTION
- * 
- * This async function runs all the seed operations.
- * It's async because database operations are asynchronous.
- */
+const workspaceSlug = "asset-hub-local-seed";
+const ownerEmail = "asset-hub-local-owner@example.invalid";
+const marker =
+  "Additive local development seed. Safe to preserve or remove by its exact IDs.";
+
 async function main() {
-  console.log('🚀 Starting Seed...');
-
-  /**
-   * STEP 1: CLEANUP - DELETE EXISTING DATA
-   * 
-   * IMPORTANT: Delete in REVERSE order of dependencies!
-   * 
-   * Database relationships (foreign keys):
-   * - Assets depend on Categories and Organizations
-   * - Categories depend on Organizations
-   * - Users depend on Organizations
-   * 
-   * If we try to delete Organizations first, it fails because
-   * Assets/Categories/Users still reference them.
-   * 
-   * Order: Assets → Categories → Users → Organizations
-   */
-  console.log('🧹 Cleaning existing data...');
-  await prisma.asset.deleteMany();      // Delete all assets first
-  await prisma.category.deleteMany();   // Then categories
-  await prisma.user.deleteMany();       // Then users
-  await prisma.organization.deleteMany(); // Finally organizations
-  console.log('✅ Database cleared.');
-
-  /**
-   * STEP 2: CREATE TENANT 1 - ACME CORP
-   * 
-   * This demonstrates the multi-tenant architecture.
-   * Each organization is a separate tenant with isolated data.
-   */
-  
-  // Create the organization (tenant)
-  const acme = await prisma.organization.create({
-    data: {
-      name: 'Acme Corp',
-      slug: 'acme-corp', // URL-friendly identifier
-    },
+  if (
+    process.env.NODE_ENV === "production" ||
+    process.env.ALLOW_DEVELOPMENT_SEED !== "1"
+  ) {
+    console.log(
+      "Seed skipped. Set ALLOW_DEVELOPMENT_SEED=1 in a non-production environment to add local fixtures.",
+    );
+    return;
+  }
+  const seedPassword = process.env.SEED_PASSWORD;
+  if (!seedPassword || seedPassword.length < 10)
+    throw new Error("SEED_PASSWORD must be set to at least 10 characters.");
+  const existing = await prisma.organization.findUnique({
+    where: { slug: workspaceSlug },
   });
-
-  // Create a category for this organization
-  // Categories are organization-specific (multi-tenant)
-  const acmeCategory = await prisma.category.create({
-    data: { name: 'Hardware', organizationId: acme.id }
+  if (existing) {
+    if (existing.isDemo && existing.description === marker) {
+      console.log("Local seed workspace already exists; no changes made.");
+      return;
+    }
+    throw new Error(
+      "The reserved local seed slug is already in use; no changes made.",
+    );
+  }
+  const existingOwner = await prisma.user.findUnique({
+    where: { email: ownerEmail },
   });
+  if (existingOwner)
+    throw new Error(
+      "The reserved local seed account already exists; no changes made.",
+    );
 
-  /**
-   * CREATE USER WITH HASHED PASSWORD
-   * 
-   * CRITICAL: Always hash passwords before storing!
-   * 
-   * bcrypt.hash(password, saltRounds):
-   * - password: The plain text password
-   * - 10: Salt rounds (how many times to hash - higher = more secure but slower)
-   * - Returns: Hashed password string
-   * 
-   * Why hash?
-   * - If database is compromised, attackers can't see real passwords
-   * - bcrypt is one-way (can't reverse the hash)
-   * - Each hash is unique (even for same password, due to salt)
-   */
-  const hashedPassword1 = await bcrypt.hash('password123', 10);
-  
-  // Create user for Acme Corp
-  await prisma.user.create({
-    data: {
-      email: 'admin@acme.com',
-      password: hashedPassword1, // Store hashed password, NOT plain text!
-      role: 'ADMIN',
-      organizationId: acme.id, // Link user to organization
-    },
+  const password = await bcrypt.hash(seedPassword, 12);
+  await prisma.$transaction(async (tx) => {
+    const organization = await tx.organization.create({
+      data: {
+        name: "AssetHub Local Seed",
+        slug: workspaceSlug,
+        description: marker,
+        currency: "PHP",
+        isDemo: true,
+      },
+    });
+    const user = await tx.user.create({
+      data: {
+        name: "Local Seed Owner",
+        email: ownerEmail,
+        password,
+        organizationId: organization.id,
+        role: "OWNER",
+      },
+    });
+    await tx.membership.create({
+      data: {
+        organizationId: organization.id,
+        userId: user.id,
+        email: ownerEmail,
+        name: user.name,
+        role: "OWNER",
+        status: "ACTIVE",
+      },
+    });
+    const category = await tx.category.create({
+      data: {
+        organizationId: organization.id,
+        name: "Computers",
+        description: "Local development fixtures",
+      },
+    });
+    const location = await tx.location.create({
+      data: {
+        organizationId: organization.id,
+        name: "Main Office",
+        address: "Local development fixture",
+      },
+    });
+    await tx.asset.create({
+      data: {
+        organizationId: organization.id,
+        name: "Development Laptop",
+        assetTag: "LOCAL-001",
+        serialNumber: "LOCAL-SEED-001",
+        status: "AVAILABLE",
+        categoryId: category.id,
+        locationId: location.id,
+        model: "Synthetic fixture",
+        purchaseCost: 65000,
+        notes: marker,
+      },
+    });
+    await tx.activity.create({
+      data: {
+        organizationId: organization.id,
+        action: "workspace.seeded",
+        title: "Local seed workspace created",
+        description: marker,
+      },
+    });
   });
-
-  /**
-   * STEP 3: CREATE TENANT 2 - GLOBEX CORP
-   * 
-   * Second organization to demonstrate multi-tenancy.
-   * This organization's data is completely separate from Acme Corp.
-   */
-  
-  // Create second organization
-  const globex = await prisma.organization.create({
-    data: {
-      name: 'Globex Corp',
-      slug: 'globex',
-    },
-  });
-
-  // Create category for Globex
-  const globexCategory = await prisma.category.create({
-    data: { name: 'General', organizationId: globex.id }
-  });
-
-  // Hash password for Globex user
-  const hashedPassword2 = await bcrypt.hash('password123', 10);
-  
-  // Create user for Globex Corp
-  await prisma.user.create({
-    data: {
-      email: 'hank@globex.com',
-      password: hashedPassword2,
-      role: 'ADMIN',
-      organizationId: globex.id,
-    },
-  });
-
-  /**
-   * SEED COMPLETE
-   * 
-   * Print login credentials for testing.
-   * These are the same passwords that were hashed above.
-   */
-  console.log('✨ Seed Finished!');
-  console.log('Acme User: admin@acme.com / password123');
-  console.log('Globex User: hank@globex.com / password123');
+  console.log(
+    "Added local synthetic fixtures. The configured password was not displayed.",
+  );
 }
 
-/**
- * EXECUTE SEED FUNCTION
- * 
- * Run the main function and handle errors/cleanup.
- * 
- * .catch() - If main() throws an error, catch it and exit with error code
- * .finally() - Always runs, even if error occurred
- *   - Disconnects Prisma client to close database connections
- *   - Prevents "connection pool exhausted" errors
- */
 main()
-  .catch((e) => {
-    console.error('❌ Seed failed:', e);
-    process.exit(1); // Exit with error code (1 = failure)
+  .catch((error) => {
+    console.error("Local development seed failed safely:", error.message);
+    process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect(); // Close database connection
+    await prisma.$disconnect();
   });

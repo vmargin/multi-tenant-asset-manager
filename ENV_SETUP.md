@@ -1,46 +1,17 @@
-# Environment Variables Setup
+# Environment setup
 
-## Backend (.env file in `backend/` directory)
+AssetHub uses a same-origin `/api` in local development and on Vercel. The frontend requires no API environment variable.
 
-Create `backend/.env` with:
+Copy `backend/.env.example` to `backend/.env` for development and fill the values locally. Never commit a populated environment file.
 
-```env
-# Database Connection (from Supabase)
-# Format: postgresql://user:password@host:port/database?sslmode=require
-DATABASE_URL=postgresql://postgres:password@localhost:5432/asset_manager
+| Variable | Purpose |
+| --- | --- |
+| DATABASE_URL | PostgreSQL connection. Use a pooled URL appropriate to the host. |
+| JWT_SECRET | Private random signing secret; required for all authentication. |
+| APP_URL | Stable public application origin used by invitations and QR labels. Locally use http://localhost:5173. |
+| PORT | Local API port; defaults to 5000. |
+| HOST | Local listen address; use 127.0.0.1 for loopback-only access. |
 
-# JWT Secret (generate a strong random string)
-# Use: openssl rand -base64 32
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+Vercel supplies its production-domain environment automatically. `APP_URL` may explicitly override it. A Vercel deployment uses the existing project environment; do not put secrets in vercel.json. `VITE_API_URL` from the old application is unused.
 
-# Server Port
-PORT=5000
-
-# Environment
-NODE_ENV=development
-
-# Frontend URL (for CORS in production)
-FRONTEND_URL=http://localhost:5173
-```
-
-## Frontend (.env file in `frontend/` directory)
-
-Create `frontend/.env` with:
-
-```env
-# Backend API URL
-# For production: Your Render backend URL (e.g., https://your-app.onrender.com)
-# For development: http://localhost:5000
-VITE_API_URL=http://localhost:5000/api
-```
-
-## Production Environment Variables
-
-### Railway (Backend)
-- `DATABASE_URL` - Supabase connection string
-- `JWT_SECRET` - Strong random secret
-- `NODE_ENV` - `production`
-- `PORT` - Auto-assigned by Railway
-
-### Vercel (Frontend)
-- `VITE_API_URL` - Your Railway backend URL + `/api`
+Run reviewed migrations separately before deploying application code. No seed or database reset runs during a build. See [deployment and rollback](docs/overhaul/deployment.md).

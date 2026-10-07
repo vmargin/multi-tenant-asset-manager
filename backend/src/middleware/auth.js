@@ -1,91 +1,80 @@
-/**
- * AUTHENTICATION MIDDLEWARE
- * 
- * This middleware protects routes by verifying JWT (JSON Web Token) tokens.
- * 
- * How it works:
- * 1. Client sends token in Authorization header: "Bearer <token>"
- * 2. Middleware extracts and verifies the token
- * 3. If valid, adds user info to req.user and calls next()
- * 4. If invalid, returns error and stops the request
- * 
- * This runs BEFORE the route handler, so protected routes automatically
- * have access to req.user (containing userId and orgId)
- */
+const jwt = require("jsonwebtoken");
+const prisma = require("../db/prisma");
 
-const jwt = require('jsonwebtoken');
+function reject(res, status, message) {
+  return res.status(status).json({ error: message });
+}
 
-/**
- * AUTHENTICATION MIDDLEWARE FUNCTION
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Callback to continue to next middleware/route
- * 
- * Middleware pattern: (req, res, next) => { ... }
- * - Must call next() to continue, or send a response to stop
- */
-const authenticate = (req, res, next) => {
-  /**
-   * EXTRACT TOKEN FROM REQUEST HEADER
-   * 
-   * Standard format: Authorization: "Bearer <token>"
-   * We split by space and take the second part (index 1)
-   * 
-   * Example: "Bearer abc123xyz" -> ["Bearer", "abc123xyz"] -> "abc123xyz"
-   */
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  // If no token provided, reject the request immediately
-  if (!token) {
-    return res.status(401).json({ error: "Access denied: No token" });
-  }
-
-  /**
-   * VALIDATE JWT_SECRET EXISTS
-   * 
-   * JWT_SECRET is used to sign and verify tokens.
-   * If it's missing, we can't verify tokens securely.
-   * This is a critical security check!
-   */
-  if (!process.env.JWT_SECRET) {
-    console.error("JWT_SECRET environment variable is not set!");
-    return res.status(500).json({ error: "Server configuration error" });
-  }
-
-  /**
-   * VERIFY THE JWT TOKEN
-   * 
-   * jwt.verify() checks:
-   * 1. Token signature is valid (was signed with JWT_SECRET)
-   * 2. Token hasn't expired
-   * 3. Token format is correct
-   * 
-   * If valid, the callback receives the decoded payload (what we put in during login)
-   * If invalid, err will contain the error reason
-   */
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      // Token is invalid, expired, or tampered with
-      return res.status(403).json({ error: "Invalid session" });
-    }
-
-    /**
-     * TOKEN IS VALID - ATTACH USER INFO TO REQUEST
-     * 
-     * The 'user' object contains the payload we signed during login:
-     * { userId: user.id, orgId: user.organizationId }
-     * 
-     * By attaching it to req.user, the route handler can access it:
-     * const orgId = req.user.orgId;
-     */
-    req.user = user;
-
-    // Call next() to continue to the route handler
+function authenticate(req, res, next) {
+  const header = req.get("authorization") || "";
+  const match = /^Bearer\s+(.+)$/i.exec(header);
+  if (!match) return reject(res, 401, "Authentication required");
+  if (!process.env.JWT_SECRET)
+    return reject(res, 500, "Authentication is unavailable");
+  try {
+    const claims = jwt.verify(match[1], process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
+    if (!claims || typeof claims.sub !== "string")
+      return reject(res, 401, "Invalid session");
+    req.auth = { userId: claims.sub };
     next();
-  });
-};
+  } catch {
+    return reject(res, 401, "Invalid session");
+  }
+}
 
-// Export the middleware function so server.js can use it
-module.exports = authenticate;
+async function requireMembership(req, res, next) {
+  const organizationId = req.get("x-organization-id");
+  if (!organizationId) return reject(res, 400, "X-Organization-Id is required");
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.auth.userId },
+      select: { id: true, name: true, email: true, demoExpiresAt: true },
+    });
+    if (!user || (user.demoExpiresAt && user.demoExpiresAt <= new Date())) {
+      return reject(res, 401, "Session expired");
+    }
+    const membership = await prisma.membership.findFirst({
+      where: { organizationId, userId: user.id, status: "ACTIVE" },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            currency: true,
+            isDemo: true,
+            expiresAt: true,
+          },
+        },
+      },
+    });
+    if (
+      !membership ||
+      (membership.organization.expiresAt &&
+        membership.organization.expiresAt <= new Date())
+    ) {
+      return reject(res, 403, "Active organization membership required");
+    }
+    req.user = user;
+    req.membership = membership;
+    req.organization = membership.organization;
+    req.organizationId = organizationId;
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+function allowRoles(...roles) {
+  return (req, res, next) => {
+    if (!req.membership || !roles.includes(req.membership.role)) {
+      return reject(res, 403, "Insufficient permission");
+    }
+    next();
+  };
+}
+
+module.exports = { authenticate, requireMembership, allowRoles };

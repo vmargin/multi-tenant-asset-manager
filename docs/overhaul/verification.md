@@ -38,9 +38,11 @@ All nine operational screens were checked at a 320px viewport. Document width re
 
 ## Visual and accessibility review
 
-The dashboard was visually reviewed against the supplied reference. Ivory surfaces, forest accents, editorial serif titles, fine borders, sidebar density, compact tables and focused action dialogs implement its theme and style as separate working screens.
+The initial verification overstated visual fidelity: it compared the authenticated dashboard's palette and components with the reference but missed that the reference is a complete hero-and-collage first view. This correction rebuilds the public root around that composition and keeps each preview tied to a real operational screen or drawer.
 
-[Light dashboard](screenshots/dashboard-light.png), [dark dashboard](screenshots/dashboard-dark.png), [asset register](screenshots/assets-light.png), [checkout drawer](screenshots/checkout-light.png) and [320px dashboard](screenshots/dashboard-mobile.png) are captured from production with synthetic demo data.
+[Reference collage in light mode](screenshots/reference-collage-light.png), [dark mode](screenshots/reference-collage-dark.png), and [a 320px mobile layout](screenshots/reference-collage-mobile.png) show the corrected public first view. Playwright at 1672 × 936 confirmed the stage fills the reference viewport, shows 13 feature panels, and has no horizontal overflow. At 320px, the document remains 320px wide and the sign-in link scrolls to the working access form. The dark-mode control persisted its selection after reload; a fresh preference defaults to light.
+
+[Authenticated dashboard](screenshots/dashboard-light.png), [dark dashboard](screenshots/dashboard-dark.png), [asset register](screenshots/assets-light.png), [checkout drawer](screenshots/checkout-light.png) and [320px dashboard](screenshots/dashboard-mobile.png) remain captures of individual working screens with synthetic demo data; they are not the public landing page.
 
 Axe-core was injected through Playwright as a development-only verification tool, using WCAG 2 A, AA and 2.1 AA tags. Dashboard, Assets, Locations, People & access, Maintenance, Audits, Categories & tags, Reports and Settings each returned zero violations in both themes. A light table-heading contrast issue was corrected through the shared muted-text token and all nine light screens were rerun successfully.
 

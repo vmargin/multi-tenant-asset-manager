@@ -60,7 +60,7 @@ function parseHash() {
   } catch {
     return { page: "missing", id: null };
   }
-  if (!raw || raw === "home") return { page: "dashboard", id: null };
+  if (!raw || raw === "home") return { page: "home", id: null };
   const [page, ...tail] = raw.split("/");
   return { page, id: tail.join("/") || null };
 }
@@ -73,7 +73,7 @@ function resolvedTheme(preference) {
 }
 function getTheme() {
   try {
-    return localStorage.getItem("assethub.theme") || "system";
+    return localStorage.getItem("assethub.theme") || "light";
   } catch {
     return "light";
   }
@@ -263,6 +263,10 @@ export default function App() {
     history.replaceState(null, "", `${location.origin}/#dashboard`);
     setRoute({ page: "dashboard", id: null });
   };
+  const changeThemePreference = (value) => {
+    setThemePreference(value);
+    setTheme(value);
+  };
   const chooseOrganization = (id) => {
     if (!session) return;
     const updated = { ...session, activeOrganizationId: id };
@@ -386,8 +390,21 @@ export default function App() {
       .toLowerCase()
       .includes(organizationSearch.toLowerCase()),
   );
-  if (!session || new URLSearchParams(location.search).get("invite"))
-    return <Access onSession={onSession} busy={busy} setBusy={setBusy} />;
+  const inviteToken = new URLSearchParams(location.search).get("invite");
+  const showPublicHome = route.page === "home" && !inviteToken;
+  if (!session || inviteToken || showPublicHome)
+    return (
+      <Access
+        onSession={onSession}
+        busy={busy}
+        setBusy={setBusy}
+        theme={theme}
+        onThemeChange={changeThemePreference}
+        session={showPublicHome ? session : null}
+        onOpenWorkspace={() => changeRoute("dashboard")}
+        onSignOut={logout}
+      />
+    );
   if (loading && !workspace)
     return (
       <div className="workspace-loading">

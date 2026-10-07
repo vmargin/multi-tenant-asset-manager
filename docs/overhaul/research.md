@@ -40,4 +40,4 @@ This is a complete educational asset-management application, not a claim of ente
 
 ## Template and information architecture
 
-Use the supplied image's persistent organization sidebar and top search bar; dashboard metric row; activity/chart panels; compact inventory tables; asset detail page; focused checkout drawer; and full-width operational screens. Preserve its understated AssetHub identity. Do not substitute a generic dashboard template or turn the image collage into the application's layout.
+The image dictates the public root page's full hero-and-collage composition. Its overlapping panels preview the organization switcher, dashboard, notifications, asset register, asset details, checkout, maintenance, categories, locations, people, audits, reports, and settings. Each preview corresponds to a real operational page or drawer. Web research informs the features and safeguards in the table above; it does not replace the image's visual direction.

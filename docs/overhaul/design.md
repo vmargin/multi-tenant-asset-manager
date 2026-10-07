@@ -2,7 +2,9 @@
 
 ## Visual authority
 
-The user-supplied image is the only aesthetic authority. Its collage shows separate application screens and interaction states; implement those as navigable pages and drawers. The design-engineering surface mode is **Operate**; the access page is **Persuade**.
+The user-supplied image is the absolute visual authority. The public root page reproduces its full composition: the AssetHub wordmark and separator at upper left, oversized two-line editorial headline, short description, lifecycle labels, and overlapping previews for the dashboard, organization switcher, notifications, assets, asset details, checkout, maintenance, categories, locations, people, audits, reports, and settings. Keep the first view framed to the reference's 1672 × 936 desktop proportions.
+
+Each collage tile is illustrative and uses synthetic sample data; it corresponds to a real page or drawer in the authenticated app. Visiting `/` shows this composition even when a valid session is saved. The workspace remains one click away, and its individual screens remain readable and operable. On small screens the collage reflows into a short, overflow-safe preview instead of retaining desktop overlap. Web research governs the feature set and safeguards only; it does not choose the visual design. The design-engineering surface mode is **Operate**; the access page is **Persuade**.
 
 ## Tokens extracted from the reference
 
@@ -22,11 +24,11 @@ Colors are implementation interpretations of the supplied raster, not claims of 
 
 Typography: a locally bundled editorial serif (Newsreader) for greetings, access-page headline and page titles; locally bundled DM Sans for operational copy. Relaxed serif letter spacing, 13-14px operational body, 11-12px labels, tabular numbers. Avoid huge marketing typography inside working screens.
 
-Layout: 236px quiet sidebar, 76px top bar, main content with 36-44px padding and a 1440px content ceiling. Four compact summary cards. Two-column chart/activity row. Fine 1px borders, 8-12px corners, restrained shadows on popovers and drawers only. No gratuitous gradients, glass effects or nested panels. Use tiny line icons, product illustrations, muted avatar colors and soft status pills.
+Layout: reproduce the collage's overlapping, slightly rotated ivory panels over a softly textured neutral canvas. Keep its left-side headline and whitespace, then use fine borders, small corners, restrained shadows, tiny line icons, product illustrations, muted avatar colors, and soft status pills. In the authenticated workspace, the corresponding screens use a quiet sidebar, compact metric cards, chart/activity panels, inventory tables, and focused drawers at readable scale. Preserve the reference's layered card treatment and avoid unrelated gradients or glass effects.
 
 Asset register: leading checkboxes, product thumbnails, names/tags, category, location, status and assignee. Detail: breadcrumbs, large equipment illustration, factual metadata, checkout/return/transfer/report actions and real history. Forms use visible labels and validation, consistent focus rings and clear cancel actions.
 
-Dark mode is a semantic token theme, not an inversion. Save the user's preference and respect system mode when no explicit preference exists. Set color-scheme for native inputs. Keep dark charts, illustrations, menus, badges, empty states and dialogs legible.
+Dark mode is a semantic token theme, not an inversion. Light mode is the initial default because it is the supplied reference. Save the user's preference, retain the optional system setting, and set `color-scheme` for native inputs. Keep dark charts, illustrations, menus, badges, empty states, preview panels, and dialogs legible.
 
 ## Interaction and responsive contract
 

@@ -573,7 +573,7 @@
   .landing--reference .landing__brand small,
   .landing--reference .landing__brand > i { display: none; }
   .landing__nav-actions { gap: 6px; }
-  .landing--reference .landing__signin { min-height: 44px; padding: 0 4px; font-size: 11px; }
+  .landing--reference .landing__signin { min-width: 44px; min-height: 44px; padding: 0 4px; font-size: 11px; }
   .landing__theme { width: 44px; height: 44px; }
   .reference-stage { padding-top: 76px; }
   .landing--reference .landing__hero { padding: 0 18px 17px; }

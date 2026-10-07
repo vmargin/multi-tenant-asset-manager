@@ -2867,6 +2867,13 @@ body:has(.sidebar--open) {
 .access-form .button {
   grid-column: 1/-1;
 }
+.access-form__demo-disclosure {
+  grid-column: 1/-1;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
 .access-card > .notice {
   grid-column: 2;
 }

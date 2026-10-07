@@ -255,15 +255,24 @@ export default function Access({
                 <Icon name="arrow-right" size={16} />
               </Button>
               {mode === "login" && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  icon="box"
-                  disabled={busy}
-                  onClick={demo}
-                >
-                  {busy ? "Preparing your workspace…" : "Explore the demo"}
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    icon="box"
+                    disabled={busy}
+                    onClick={demo}
+                    aria-describedby="demo-data-disclosure"
+                  >
+                    {busy ? "Preparing your workspace…" : "Explore the demo"}
+                  </Button>
+                  <p
+                    id="demo-data-disclosure"
+                    className="access-form__demo-disclosure"
+                  >
+                    Demo content uses fictional sample data.
+                  </p>
+                </>
               )}
             </form>
             <div className="access-card__switch">

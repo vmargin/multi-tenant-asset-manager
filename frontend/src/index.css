@@ -2834,74 +2834,6 @@ body:has(.sidebar--open) {
 .page-state {
   padding-top: 12px;
 }
-.access-card {
-  grid-column: 1/-1;
-  border-top: 1px solid var(--border);
-  padding: 35px 0 5px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 60px;
-  align-items: start;
-}
-.access-card__eyebrow {
-  color: var(--muted);
-  font-size: 9px;
-  letter-spacing: 1.8px;
-}
-.access-card__heading h2 {
-  font-family: var(--serif);
-  font-size: 32px;
-  letter-spacing: -0.5px;
-  margin: 12px 0 10px;
-}
-.access-card__heading p {
-  color: var(--muted);
-  font-size: 12px;
-  max-width: 400px;
-}
-.access-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 15px;
-}
-.access-form .button {
-  grid-column: 1/-1;
-}
-.access-form__demo-disclosure {
-  grid-column: 1/-1;
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-  text-align: center;
-}
-.access-card > .notice {
-  grid-column: 2;
-}
-.access-card__switch {
-  grid-column: 2;
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 15px;
-}
-.access-card__switch button {
-  color: var(--accent);
-  font-size: 11px;
-  min-height: 33px;
-}
-.landing__footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 20px 8px 0;
-  font-size: 9px;
-  color: var(--muted);
-  border-top: 1px solid var(--border);
-}
-.landing__footer span:last-child {
-  font-size: 8px;
-  letter-spacing: 1.5px;
-}
-
 @media (hover: hover) {
   .button--primary:not(:disabled):hover {
     background: var(--accent-hover);
@@ -2923,8 +2855,7 @@ body:has(.sidebar--open) {
   .search-result:hover {
     background: var(--selected);
   }
-  .text-button:hover,
-  .landing__signin:hover {
+  .text-button:hover {
     color: var(--accent);
   }
 }
@@ -3004,10 +2935,6 @@ body:has(.sidebar--open) {
   }
   .page-heading__title {
     font-size: 30px;
-  }
-  .access-card {
-    grid-column: 1;
-    column-gap: 32px;
   }
 }
 @media (max-width: 760px) {
@@ -3187,21 +3114,6 @@ body:has(.sidebar--open) {
   .page-heading__description {
     max-width: 80%;
   }
-  .access-card {
-    grid-template-columns: 1fr;
-    padding-top: 28px;
-  }
-  .access-card__switch,
-  .access-card > .notice {
-    grid-column: 1;
-  }
-  .access-card__heading {
-    margin-bottom: 16px;
-  }
-  .landing__footer {
-    flex-direction: column;
-    gap: 10px;
-  }
 }
 @media (max-width: 480px) {
   body {
@@ -3376,12 +3288,6 @@ body:has(.sidebar--open) {
   }
   .donut-legend {
     min-width: 150px;
-  }
-  .access-form {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .access-card__heading h2 {
-    font-size: 29px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

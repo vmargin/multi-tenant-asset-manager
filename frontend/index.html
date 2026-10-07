@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#f4f3ee" />
     <meta
       name="description"
-      content="AssetHub. Everything in its right place. A multi-tenant workspace for your equipment, people and places."
+      content="Sign in to AssetHub to manage your organization’s equipment, people and asset history. Open an isolated demo workspace with fictional sample data."
     />
     <link rel="icon" type="image/svg+xml" href="/assethub.svg" />
     <script>
       try {
-        const preference = localStorage.getItem("assethub.theme") || "system";
+        const preference = localStorage.getItem("assethub.theme") || "light";
         const dark =
           preference === "dark" ||
           (preference === "system" &&
@@ -21,7 +21,7 @@
         document.documentElement.dataset.theme = "light";
       }
     </script>
-    <title>AssetHub · Everything in its right place</title>
+    <title>AssetHub · Workspace access</title>
   </head>
   <body>
     <div id="root"></div>

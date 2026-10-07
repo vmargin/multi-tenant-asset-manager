@@ -40,4 +40,4 @@ This is a complete educational asset-management application, not a claim of ente
 
 ## Template and information architecture
 
-The image dictates the public root page's full hero-and-collage composition. Its overlapping panels preview the organization switcher, dashboard, notifications, asset register, asset details, checkout, maintenance, categories, locations, people, audits, reports, and settings. Each preview corresponds to a real operational page or drawer. Web research informs the features and safeguards in the table above; it does not replace the image's visual direction.
+The image sets the public page's visual language, not its login composition. The public root leads with working sign-in and demo credentials, using the image's warm canvas, forest palette, editorial type, and restrained surfaces without reproducing its collage. Web research informs the features, login behavior, and safeguards in the table above.

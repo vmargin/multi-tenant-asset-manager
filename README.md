@@ -46,7 +46,7 @@ npx prisma migrate deploy
 npm run dev
 ```
 
-In another terminal, run `npm run dev --prefix frontend` from the repository root. Open [localhost:5173](http://localhost:5173/). Vite proxies `/api` to port 5000. Use Create an organization for an empty workspace or Explore the demo for isolated examples.
+In another terminal, run `npm run dev --prefix frontend` from the repository root. Open [localhost:5173](http://localhost:5173/). Vite proxies `/api` to port 5000. Sign in with your work email, create an organization, or use the demo username and password shown on the sign-in screen to open an isolated sample workspace.
 
 Existing databases require a reviewed baseline; do not run the historical initialization migrations against tables that already exist. This overhaul baselined the two historical migrations, applied two additive migrations and verified fingerprints of all original records and credentials. See [deployment and rollback](docs/overhaul/deployment.md).
 

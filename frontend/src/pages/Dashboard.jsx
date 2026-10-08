@@ -237,27 +237,35 @@ export default function Dashboard({ workspace, navigate }) {
         >
           <div className="activity-list">
             {recent.length ? (
-              recent.map((item) => (
-                <button
-                  className="activity-row"
-                  key={item.id}
-                  onClick={() =>
-                    item.assetId && navigate(`assets/${item.assetId}`)
-                  }
-                >
-                  <span className="activity-row__icon">
-                    <Icon name={activityIcon(item.action)} size={15} />
-                  </span>
-                  <span className="activity-row__copy">
-                    <b>{item.title}</b>
-                    <small>
-                      {item.description || dateLabel(item.createdAt)}
-                    </small>
-                  </span>
-                  <time>{relativeTime(item.createdAt)}</time>
-                  <Icon name="chevron-right" size={14} />
-                </button>
-              ))
+              recent.map((item) => {
+                const ActivityRow = item.assetId ? "button" : "div";
+                return (
+                  <ActivityRow
+                    className={`activity-row${item.assetId ? "" : " activity-row--static"}`}
+                    key={item.id}
+                    {...(item.assetId
+                      ? {
+                          type: "button",
+                          onClick: () => navigate(`assets/${item.assetId}`),
+                        }
+                      : {})}
+                  >
+                    <span className="activity-row__icon">
+                      <Icon name={activityIcon(item.action)} size={15} />
+                    </span>
+                    <span className="activity-row__copy">
+                      <b>{item.title}</b>
+                      <small>
+                        {item.description || dateLabel(item.createdAt)}
+                      </small>
+                    </span>
+                    <time>{relativeTime(item.createdAt)}</time>
+                    {item.assetId && (
+                      <Icon name="chevron-right" size={14} />
+                    )}
+                  </ActivityRow>
+                );
+              })
             ) : (
               <EmptyState
                 icon="clipboard-check"

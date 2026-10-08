@@ -37,6 +37,16 @@ const columns = [
 ];
 const template =
   "name,assetTag,serialNumber,categoryId,locationId,model,purchaseDate,warrantyDate,purchaseCost,notes\n";
+function assetExportRow(asset, categories, locations, people) {
+  return {
+    ...asset,
+    category: categoryName(categories, asset.categoryId),
+    location: locationName(locations, asset.locationId),
+    assignedTo: personName(people, asset.assignedToId),
+    purchaseDate: dateLabel(asset.purchaseDate),
+    warrantyDate: dateLabel(asset.warrantyDate),
+  };
+}
 export default function AssetsPage({
   workspace,
   canManage,
@@ -73,7 +83,6 @@ export default function AssetsPage({
           const q = search.toLowerCase();
           const person = personName(people, a.assignedToId);
           return (
-            (a.status !== "RETIRED" || status === "RETIRED") &&
             (!q ||
               [a.name, a.assetTag, a.serialNumber, a.model, person].some((v) =>
                 String(v || "")
@@ -337,14 +346,9 @@ export default function AssetsPage({
               onClick={() =>
                 downloadCsv(
                   "assethub-assets.csv",
-                  filtered.map((asset) => ({
-                    ...asset,
-                    category: categoryName(categories, asset.categoryId),
-                    location: locationName(locations, asset.locationId),
-                    assignedTo: personName(people, asset.assignedToId),
-                    purchaseDate: dateLabel(asset.purchaseDate),
-                    warrantyDate: dateLabel(asset.warrantyDate),
-                  })),
+                  filtered.map((asset) =>
+                    assetExportRow(asset, categories, locations, people),
+                  ),
                   columns,
                 )
               }
@@ -377,12 +381,9 @@ export default function AssetsPage({
                     "assethub-selected-assets.csv",
                     filtered
                       .filter((a) => selected.includes(a.id))
-                      .map((asset) => ({
-                        ...asset,
-                        category: categoryName(categories, asset.categoryId),
-                        location: locationName(locations, asset.locationId),
-                        assignedTo: personName(people, asset.assignedToId),
-                      })),
+                      .map((asset) =>
+                        assetExportRow(asset, categories, locations, people),
+                      ),
                     columns,
                   )
                 }
@@ -1045,9 +1046,11 @@ function AssetDetail({
               Transfer location
             </Button>
           )}
-          <Button icon="wrench" onClick={() => onAction(asset, "request")}>
-            Report an issue
-          </Button>
+          {asset.status !== "RETIRED" && (
+            <Button icon="wrench" onClick={() => onAction(asset, "request")}>
+              Report an issue
+            </Button>
+          )}
           {canManage && asset.status !== "RETIRED" && (
             <Button variant="quiet" onClick={() => onAction(asset, "retire")}>
               Retire asset

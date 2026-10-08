@@ -99,6 +99,8 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const sidebarRef = useRef(null);
   const priorFocus = useRef(null);
+  const organizationSearchRef = useRef(null);
+  const globalSearchRef = useRef(null);
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(""), 4000);
@@ -203,7 +205,6 @@ export default function App() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setOverlay("search");
-        setTimeout(() => document.getElementById("global-search")?.focus(), 0);
       }
       if (event.key === "Escape") {
         if (overlay) setOverlay("");
@@ -269,6 +270,10 @@ export default function App() {
   };
   const chooseOrganization = (id) => {
     if (!session) return;
+    if (id === workspace?.organization?.id) {
+      setOverlay("");
+      return;
+    }
     const updated = { ...session, activeOrganizationId: id };
     saveSession(updated);
     setSession(updated);
@@ -392,6 +397,17 @@ export default function App() {
   );
   const inviteToken = new URLSearchParams(location.search).get("invite");
   const showPublicHome = route.page === "home" && !inviteToken;
+  const title =
+    navGroups
+      .flatMap((group) => group.items)
+      .find(([key]) => key === route.page)?.[2] ||
+    { settings: "Settings", notifications: "Notifications" }[route.page] ||
+    "Asset details";
+  useEffect(() => {
+    const pageTitle =
+      !session || inviteToken || showPublicHome ? "Workspace access" : title;
+    document.title = `AssetHub · ${pageTitle}`;
+  }, [inviteToken, session, showPublicHome, title]);
   if (!session || inviteToken || showPublicHome)
     return (
       <Access
@@ -442,12 +458,6 @@ export default function App() {
         </div>
       </main>
     );
-  const title =
-    navGroups
-      .flatMap((group) => group.items)
-      .find(([key]) => key === route.page)?.[2] ||
-    { settings: "Settings", notifications: "Notifications" }[route.page] ||
-    "Asset details";
   return (
     <div className="app-shell">
       <aside
@@ -728,11 +738,15 @@ export default function App() {
       </main>
 
       {overlay === "organization" && (
-        <Dialog title="Switch organization" onClose={() => setOverlay("")}>
+        <Dialog
+          title="Switch organization"
+          onClose={() => setOverlay("")}
+          initialFocusRef={organizationSearchRef}
+        >
           <label className="search-field org-search">
             <Icon name="search" size={16} />
             <input
-              autoFocus
+              ref={organizationSearchRef}
               value={organizationSearch}
               onChange={(e) => setOrganizationSearch(e.target.value)}
               placeholder="Search organizations…"
@@ -770,12 +784,16 @@ export default function App() {
         </Dialog>
       )}
       {overlay === "search" && (
-        <Dialog title="Search your workspace" onClose={() => setOverlay("")}>
+        <Dialog
+          title="Search your workspace"
+          onClose={() => setOverlay("")}
+          initialFocusRef={globalSearchRef}
+        >
           <label className="search-field modal-search">
             <Icon name="search" size={17} />
             <input
               id="global-search"
-              autoFocus
+              ref={globalSearchRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Find assets, people, locations, requests…"
@@ -960,6 +978,15 @@ function NotificationPage({
     </>
   );
 }
+function isAssignmentActivity(item) {
+  const value = `${item.action || ""} ${item.title || ""}`.replace(
+    /[_-]+/g,
+    " ",
+  );
+  return /\b(?:check(?:ed)?\s*out|check(?:ed)?\s*in|return(?:ed)?|transfer(?:red)?|assign(?:ed|ment)?)\b/i.test(
+    value,
+  );
+}
 function NotificationList({
   notifications,
   readIds,
@@ -973,10 +1000,7 @@ function NotificationList({
       (item) =>
         filter === "ALL" ||
         (filter === "UNREAD" && !readIds.includes(item.id)) ||
-        (filter === "ASSIGNMENTS" &&
-          /checkout|checkin|transfer|assigned/i.test(
-            `${item.action} ${item.title}`,
-          )) ||
+        (filter === "ASSIGNMENTS" && isAssignmentActivity(item)) ||
         (filter === "REQUESTS" &&
           /request|maintenance/i.test(`${item.action} ${item.title}`)) ||
         (filter === "SYSTEM" &&

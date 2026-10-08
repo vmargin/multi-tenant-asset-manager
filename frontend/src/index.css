@@ -1838,6 +1838,9 @@ b {
   gap: 10px;
   padding: 11px 0;
 }
+.activity-row--static {
+  cursor: default;
+}
 .activity-row__icon,
 .notification-row__icon {
   width: 32px;

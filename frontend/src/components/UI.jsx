@@ -95,15 +95,29 @@ export function Dialog({
   onClose,
   drawer = false,
   open = true,
+  initialFocusRef,
 }) {
   const ref = useRef(null);
+  const returnFocusRef = useRef(null);
   const titleId = useId();
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      const activeElement = document.activeElement;
+      returnFocusRef.current =
+        activeElement instanceof HTMLElement ? activeElement : null;
+      dialog.showModal();
+      initialFocusRef?.current?.focus();
+    }
     if (!open && dialog.open) dialog.close();
-  }, [open]);
+    return () => {
+      if (dialog.open) dialog.close();
+      if (returnFocusRef.current?.isConnected)
+        returnFocusRef.current.focus();
+      returnFocusRef.current = null;
+    };
+  }, [initialFocusRef, open]);
   return (
     <dialog
       ref={ref}

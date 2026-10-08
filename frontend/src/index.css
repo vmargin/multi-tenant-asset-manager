@@ -117,6 +117,10 @@ textarea::placeholder {
   color: var(--subtle);
   opacity: 1;
 }
+.dialog input::placeholder,
+.dialog textarea::placeholder {
+  color: var(--muted);
+}
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {

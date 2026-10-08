@@ -118,11 +118,32 @@ export function Dialog({
       returnFocusRef.current = null;
     };
   }, [initialFocusRef, open]);
+  function keepFocusInside(event) {
+    if (event.key !== "Tab") return;
+    const dialog = ref.current;
+    if (!dialog?.open) return;
+    const focusable = Array.from(
+      dialog.querySelectorAll(
+        'button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => element.getClientRects().length > 0);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
   return (
     <dialog
       ref={ref}
       aria-labelledby={titleId}
       className={`dialog${drawer ? " dialog--drawer" : ""}`}
+      onKeyDown={keepFocusInside}
       onClose={onClose}
       onCancel={onClose}
     >
